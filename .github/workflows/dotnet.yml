@@ -21,11 +21,11 @@ jobs:
       with:
         dotnet-version: 8.0.x
     - name: Restore dependencies
-      working-directory: ./src/RandomQuuotes
+      working-directory: src/RandomQuotes/
       run: dotnet restore
     - name: Build
-      working-directory: ./src/RandomQuuotes
+      working-directory: src/RandomQuotes/
       run: dotnet build --no-restore
     - name: Test
-      working-directory: ./src/RandomQuuotes
+      working-directory: src/RandomQuotes/
       run: dotnet test --no-build --verbosity normal
