@@ -132,7 +132,7 @@ jobs:
         echo "::set-output name=artifacts_new_line::${joinednewline%\n}"
         echo "::set-output name=versions_new_line::${versionsjoinednewline%\n}"
     - name: Push packages to Octopus Deploy
-      uses: OctopusDeploy/push-package-action@v2
+      uses: OctopusDeploy/push-package-action@v3
       env:
         OCTOPUS_API_KEY: ${{ secrets.OCTOPUS_API_TOKEN }}
         OCTOPUS_HOST: ${{ secrets.OCTOPUS_SERVER_URL }}
