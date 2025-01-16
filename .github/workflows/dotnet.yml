@@ -19,13 +19,16 @@ jobs:
         working-directory: src/
         
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v3
       with:
         fetch-depth: '0'
     - name: Set up DotNET Core
-      uses: actions/setup-dotnet@v4
+      uses: actions/setup-dotnet@v3
       with:
-        dotnet-version: 8.0.x
+        dotnet-version: |-
+          3.1.x
+          5.0.x
+          6.0.x
     - name: Install GitVersion
       uses: gittools/actions/gitversion/setup@v0.9.14
       with:
@@ -36,12 +39,28 @@ jobs:
       with:
         additionalArguments: /overrideconfig mode=Mainline
     - name: Install Octopus Deploy CLI
-      uses: OctopusDeploy/install-octopus-cli-action@v3
+      uses: OctopusDeploy/install-octopus-cli-action@v1
       with:
         version: latest
     - name: Install Dependencies
       run: dotnet restore
       shell: bash
+    - name: List Dependencies
+      run: dotnet list package > dependencies.txt
+      shell: bash
+    - name: Collect Dependencies
+      uses: actions/upload-artifact@v2
+      with:
+        name: Dependencies
+        path: dependencies.txt
+    - name: List Dependency Updates
+      run: dotnet list package --outdated > dependencyUpdates.txt
+      shell: bash
+    - name: Collect Dependency Updates
+      uses: actions/upload-artifact@v2
+      with:
+        name: Dependencies Updates
+        path: dependencyUpdates.txt
     - name: Test
       run: dotnet test -l:trx
       shell: bash
@@ -58,7 +77,9 @@ jobs:
     - id: package
       name: Package
       run: |
-        # Find the publish directories
+        # "dotnet publish" generates binary files in a specific directory called ./bin/<BUILD-CONFIGURATION>/<TFM>/publish/.
+        # See https://docs.microsoft.com/en-us/dotnet/core/deploying/deploy-with-cli for more details.
+        # We start by finding the publish directories, which we assume hold dll files.
         shopt -s globstar
         paths=()
         for i in **/publish/*.dll; do
@@ -66,11 +87,12 @@ jobs:
           echo ${dir}
           paths=(${paths[@]} ${dir})
         done
+        # Find the unique set of directories holding the dll files.
         eval uniquepaths=($(printf "%s\n" "${paths[@]}" | sort -u))
         for i in "${uniquepaths[@]}"; do
           echo $i
         done
-        # For each publish dir, create a package
+        # For each publish dir, create a package.
         packages=()
         versions=()
         for path in "${uniquepaths[@]}"; do
@@ -79,7 +101,7 @@ jobs:
           dir=${path}/../../../..
           parentdir=$(builtin cd $dir; pwd)
           projectname=${parentdir##*/}
-          # Package the published files
+          # Package the published files.
           octo pack \
           --basePath ${path} \
           --id ${projectname} \
@@ -89,26 +111,33 @@ jobs:
           packages=(${packages[@]} "${projectname}.${{ steps.determine_version.outputs.semVer }}.zip")
           versions=(${versions[@]} "${projectname}:${{ steps.determine_version.outputs.semVer }}")
         done
-        # Join the array with commas
+        # We now need to output the list of generated packages so subsequent steps can access them.
+        # We create multiple output variables with line and comma separated vales to support the inputs of subsequent steps.
+        # Join the array with commas.
         printf -v joined "%s," "${packages[@]}"
         # Save the list of packages as an output variable
         echo "::set-output name=artifacts::${joined%,}"
-        # Do the same again, but use new lines as the separator
+        # Do the same again, but use new lines as the separator. These will be used when uploading packages to the GitHub release.
+        printf -v joinednewline "%s\n" "${packages[@]}"
         # https://trstringer.com/github-actions-multiline-strings/
-        # Multiline strings require some care in a workflow
+        # Multiline strings require some care in a workflow.
+        joinednewline="${joinednewline//'%'/'%25'}"
+        joinednewline="${joinednewline//$'\n'/'%0A'}"
+        joinednewline="${joinednewline//$'\r'/'%0D'}"
+        # Now build a new line separated list of versions. These will be used when creating an Octopus release.
         printf -v versionsjoinednewline "%s\n" "${versions[@]}"
         versionsjoinednewline="${versionsjoinednewline//'%'/'%25'}"
         versionsjoinednewline="${versionsjoinednewline//$'\n'/'%0A'}"
         versionsjoinednewline="${versionsjoinednewline//$'\r'/'%0D'}"
-        # Save the list of packages newline separated as an output variable
+        # Save the list of packages newline separated as an output variable.
+        echo "::set-output name=artifacts_new_line::${joinednewline%\n}"
         echo "::set-output name=versions_new_line::${versionsjoinednewline%\n}"
-    - name: Push packages to Octopus Deploy 🐙
-      uses: OctopusDeploy/push-package-action@v3
+    - name: Push packages to Octopus Deploy
+      uses: OctopusDeploy/push-package-action@v2
       env:
         OCTOPUS_API_KEY: ${{ secrets.OCTOPUS_API_TOKEN }}
         OCTOPUS_HOST: ${{ secrets.OCTOPUS_SERVER_URL }}
       with:
-        overwrite_mode: OverwriteExisting
         packages: ${{ steps.package.outputs.artifacts }}
-
-    
+        overwrite_mode: OverwriteExisting
+ 
