@@ -134,9 +134,9 @@ jobs:
     - name: Push packages to Octopus Deploy
       uses: OctopusDeploy/push-package-action@v3
       with:
-        server: ${{ env.OCTOPUS_SERVER_URL }}
+        server: ${{ vars.OCTOPUS_URL }}
         api_key: ${{ secrets.OCTOPUS_API_TOKEN }}
-        space: ${{ env.OCTOPUS_SPACE }}
+        space: ${{ vars.OCTOPUS_SPACE }}
         packages: ${{ steps.package.outputs.artifacts }}
         overwrite_mode: OverwriteExisting
  
