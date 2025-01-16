@@ -103,7 +103,7 @@ jobs:
           projectname=${parentdir##*/}
           # Package the published files.
           octopus package zip create \
-          --basePath ${path} \
+          --base-path ${path} \
           --id ${projectname} \
           --version ${{ steps.determine_version.outputs.semVer }} \
           --overwrite
