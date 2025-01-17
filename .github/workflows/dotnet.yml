@@ -122,7 +122,8 @@ jobs:
     - name: debug
       env:
         ARTI: ${{ steps.package.outputs.ARTIFACTS }}
-      run: echo "The artifacts are: ${ARTI}"
+      run: |
+        echo "The artifacts are: ${ARTI}"
     - name: Push packages to Octopus Deploy
       uses: OctopusDeploy/push-package-action@v3
       with:
