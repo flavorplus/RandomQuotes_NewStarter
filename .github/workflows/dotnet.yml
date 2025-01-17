@@ -103,7 +103,6 @@ jobs:
           parentdir=$(builtin cd $dir; pwd)
           projectname=${parentdir##*/}
           printf "The project name we will use: %s And the dir we will package: %s\n" "${projectname}" "${path}"
-          printf "We are saving the zips
           # Package the published files.
           octopus package zip create \
           --base-path ${path} \
