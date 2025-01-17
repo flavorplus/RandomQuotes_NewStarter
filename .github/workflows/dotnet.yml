@@ -113,18 +113,20 @@ jobs:
           packages=(${packages[@]} "${projectname}.${{ steps.determine_version.outputs.semVer }}.zip")
           versions=(${versions[@]} "${projectname}:${{ steps.determine_version.outputs.semVer }}")
           echo $(readlink -f "${projectname}.${{ steps.determine_version.outputs.semVer }}.zip")
-          #fullPaths=(${fullPaths[@}} readlink -f "${projectname}.${{ steps.determine_version.outputs.semVer }}.zip")
+          fullPaths=(${fullPaths[@]} $(readlink -f "${projectname}.${{ steps.determine_version.outputs.semVer }}.zip"))
         done
         # We now need to output the list of generated packages so subsequent steps can access them.
         # We create multiple output variables with line and comma separated vales to support the inputs of subsequent steps.
         # Join the array with commas.
         printf -v joined "%s," "${packages[@]}"
+        printf -v joined_full "%s," "${fullPaths[@]}"
         # Save the list of packages as an output variable
         # echo "::set-output name=artifacts::${joined%,}"
         echo "ARTIFACTS=${joined%,}" >> $GITHUB_OUTPUT
+        echo "ARTIFACTS_FULL=${joined_full%,}" >> $GITHUB_OUTPUT
     - name: debug
       env:
-        ARTI: ${{ steps.package.outputs.ARTIFACTS }}
+        ARTI: ${{ steps.package.outputs.ARTIFACTS_FULL }}
       run: |
         echo "The artifacts are: ${ARTI}"
     - name: Push packages to Octopus Deploy
@@ -133,6 +135,6 @@ jobs:
         server: ${{ vars.OCTOPUS_URL }}
         api_key: ${{ secrets.OCTOPUS_API_TOKEN }}
         space: ${{ vars.OCTOPUS_SPACE }}
-        packages: ${{ steps.package.outputs.ARTIFACTS }}
+        packages: ${{ steps.package.outputs.ARTIFACTS_FULL }}
         overwrite_mode: OverwriteExisting
  
