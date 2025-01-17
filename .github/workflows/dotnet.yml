@@ -111,7 +111,6 @@ jobs:
           --overwrite
           packages=(${packages[@]} "${projectname}.${{ steps.determine_version.outputs.semVer }}.zip")
           versions=(${versions[@]} "${projectname}:${{ steps.determine_version.outputs.semVer }}")
-          pwd
         done
         # We now need to output the list of generated packages so subsequent steps can access them.
         # We create multiple output variables with line and comma separated vales to support the inputs of subsequent steps.
@@ -120,6 +119,10 @@ jobs:
         # Save the list of packages as an output variable
         # echo "::set-output name=artifacts::${joined%,}"
         echo "ARTIFACTS=${joined%,}" >> $GITHUB_OUTPUT
+    - name: debug
+      env:
+        ARTI: ${{ steps.package.outputs.ARTIFACTS }}
+      run: echo "The artifacts are: ${ARTI}"
     - name: Push packages to Octopus Deploy
       uses: OctopusDeploy/push-package-action@v3
       with:
