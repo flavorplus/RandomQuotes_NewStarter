@@ -96,6 +96,7 @@ jobs:
         # For each publish dir, create a package.
         packages=()
         versions=()
+        fullPaths=()
         for path in "${uniquepaths[@]}"; do
           # Get the directory name four deep, which is typically the project folder.
           # The directory name is used to name the package.
@@ -111,6 +112,8 @@ jobs:
           --overwrite
           packages=(${packages[@]} "${projectname}.${{ steps.determine_version.outputs.semVer }}.zip")
           versions=(${versions[@]} "${projectname}:${{ steps.determine_version.outputs.semVer }}")
+          echo readlink -f "${projectname}.${{ steps.determine_version.outputs.semVer }}.zip"
+          fullPaths=(${fullPaths[@}} readlink -f "${projectname}.${{ steps.determine_version.outputs.semVer }}.zip")
         done
         # We now need to output the list of generated packages so subsequent steps can access them.
         # We create multiple output variables with line and comma separated vales to support the inputs of subsequent steps.
