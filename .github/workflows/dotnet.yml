@@ -80,6 +80,7 @@ jobs:
         # "dotnet publish" generates binary files in a specific directory called ./bin/<BUILD-CONFIGURATION>/<TFM>/publish/.
         # See https://docs.microsoft.com/en-us/dotnet/core/deploying/deploy-with-cli for more details.
         # We start by finding the publish directories, which we assume hold dll files.
+        echo "Finding all dirs..."
         shopt -s globstar
         paths=()
         for i in **/publish/*.dll; do
@@ -101,6 +102,8 @@ jobs:
           dir=${path}/../../../..
           parentdir=$(builtin cd $dir; pwd)
           projectname=${parentdir##*/}
+          printf "The project name we will use: %s And the dir we will package: %s\n" "${projectname}" "${path}"
+          printf "We are saving the zips
           # Package the published files.
           octopus package zip create \
           --base-path ${path} \
@@ -109,6 +112,7 @@ jobs:
           --overwrite
           packages=(${packages[@]} "${projectname}.${{ steps.determine_version.outputs.semVer }}.zip")
           versions=(${versions[@]} "${projectname}:${{ steps.determine_version.outputs.semVer }}")
+          ls
         done
         # We now need to output the list of generated packages so subsequent steps can access them.
         # We create multiple output variables with line and comma separated vales to support the inputs of subsequent steps.
